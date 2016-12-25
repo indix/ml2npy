@@ -10,6 +10,7 @@ import java.nio.{ByteBuffer, ByteOrder}
   * Created by vumaasha on 24/12/16.
   */
 object NpyWriter {
+
   val magic: Array[Byte] = 0X93.toByte +: "NUMPY".getBytes(StandardCharsets.US_ASCII)
   val majorVersion = 1
   val minorVersion = 0
@@ -47,7 +48,6 @@ object NpyWriter {
   def main(args: Array[String]): Unit = {
     val channel = FileChannel.open(Paths.get("/tmp/test.npy"), StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE)
     channel.write(content)
-    channel.truncate(content.position)
     channel.close()
   }
 }
