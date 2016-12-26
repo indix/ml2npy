@@ -18,9 +18,11 @@ sealed abstract class NpyFile[V](data: Seq[V]) {
   /*
   supported dtypes i2,i4,i8,f4,f8
    */
-  val dtype:String = ???
-  val dataSize:Int = ???
-  def addToBuffer(byteBuffer: ByteBuffer)(elem:V) = ???
+  val dtype: String = ???
+  val dataSize: Int = ???
+
+  def addElement(elem: V): ByteBuffer = ???
+
   val dataLength = data.length.toString
   val description = s"{'descr': '$dtype', 'fortran_order': False, 'shape': ($dataLength,), }"
 
@@ -43,7 +45,7 @@ sealed abstract class NpyFile[V](data: Seq[V]) {
     .putShort(paddedDescription.length.toShort)
     .put(paddedDescription.getBytes(StandardCharsets.US_ASCII))
 
-  data.foreach(addToBuffer(content))
+  data.foreach(x => addElement(x))
   content.flip
 
   def main(args: Array[String]): Unit = {
@@ -52,3 +54,40 @@ sealed abstract class NpyFile[V](data: Seq[V]) {
     channel.close()
   }
 }
+
+class LongNpyFile(data: Seq[Long]) extends NpyFile(data) {
+  override val dtype: String = "<i8"
+  override val dataSize: Int = 8
+  override def addElement(elem: Long) = content.putLong(elem)
+}
+
+class IntNpyFile(data: Seq[Int]) extends NpyFile(data) {
+  override val dtype: String = "<i4"
+  override val dataSize: Int = 4
+  override def addElement(elem: Int) = content.putLong(elem)
+}
+
+class ShortNpyFile(data: Seq[Short]) extends NpyFile(data) {
+  override val dtype: String = "<i2"
+  override val dataSize: Int = 2
+  override def addElement(elem: Short) = content.putLong(elem)
+}
+
+class ByteNpyFile(data: Seq[Byte]) extends NpyFile(data) {
+  override val dtype: String = "<i1"
+  override val dataSize: Int = 1
+  override def addElement(elem: Byte) = content.putLong(elem)
+}
+
+class FloatNpyFile(data: Seq[Float]) extends NpyFile(data) {
+  override val dtype: String = "<f4"
+  override val dataSize: Int = 4
+  override def addElement(elem: Float) = content.putFloat(elem)
+}
+
+class DoubleNpyFile(data: Seq[Double]) extends NpyFile(data) {
+  override val dtype: String = "<f8"
+  override val dataSize: Int = 8
+  override def addElement(elem: Double) = content.putDouble(elem)
+}
+
