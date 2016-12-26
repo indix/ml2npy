@@ -7,9 +7,9 @@ package com.github.vumaasha.ml2npy
 import scala.{specialized => spec}
 
 class ml2npyCSR[@spec(Double, Int, Float, Long, Short, Byte) V](data: Seq[V],
-                                                                indices: Seq[Long],
-                                                                indexPointers: Seq[Long],
-                                                                rows: Long,
-                                                                columns: Long) {
+                                                                indices: Seq[Int],
+                                                                indexPointers: Seq[Int],
+                                                                rows: Int,
+                                                                columns: Int) {
 
 }

@@ -9,19 +9,20 @@ import java.nio.{ByteBuffer, ByteOrder}
 /**
   * Created by vumaasha on 24/12/16.
   */
-object NpyWriter {
+sealed abstract class NpyFile[V](data: Seq[V]) {
 
   val magic: Array[Byte] = 0X93.toByte +: "NUMPY".getBytes(StandardCharsets.US_ASCII)
   val majorVersion = 1
   val minorVersion = 0
   val headerLenth = 70
-  val dtype = "<f4"
   /*
   supported dtypes i2,i4,i8,f4,f8
    */
-  val dataLength = "2"
+  val dtype:String = ???
+  val dataSize:Int = ???
+  def addToBuffer(byteBuffer: ByteBuffer)(elem:V) = ???
+  val dataLength = data.length.toString
   val description = s"{'descr': '$dtype', 'fortran_order': False, 'shape': ($dataLength,), }"
-  val data: Array[Float] = Array(0.3f, 0.4f)
 
   val versionByteSize = 2
   val headerByteSize = 2
@@ -34,7 +35,7 @@ object NpyWriter {
   } else description
 
   private val headerLength: Int = unpaddedLength + paddingLength
-  val content = ByteBuffer.allocateDirect(headerLength + (data.length * 4))
+  val content = ByteBuffer.allocateDirect(headerLength + (data.length * dataSize))
     .order(ByteOrder.LITTLE_ENDIAN)
     .put(magic)
     .put(majorVersion.toByte)
@@ -42,7 +43,7 @@ object NpyWriter {
     .putShort(paddedDescription.length.toShort)
     .put(paddedDescription.getBytes(StandardCharsets.US_ASCII))
 
-  data.foreach(x => content.putFloat(x))
+  data.foreach(addToBuffer(content))
   content.flip
 
   def main(args: Array[String]): Unit = {
