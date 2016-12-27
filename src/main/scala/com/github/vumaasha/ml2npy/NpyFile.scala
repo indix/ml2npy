@@ -4,7 +4,6 @@ import java.nio.channels.FileChannel
 import java.nio.charset.StandardCharsets
 import java.nio.file.{Paths, StandardOpenOption}
 import java.nio.{ByteBuffer, ByteOrder}
-import scala.reflect.runtime.universe._
 
 
 /**
@@ -37,7 +36,7 @@ abstract class NpyFile[V] {
     } else description
 
     val headerLength: Int = unpaddedLength + paddingLength
-    val content = ByteBuffer.allocateDirect(headerLength + (data.length * dataSize))
+    val content = ByteBuffer.allocate(headerLength + (data.length * dataSize))
       .order(ByteOrder.LITTLE_ENDIAN)
       .put(magic)
       .put(majorVersion.toByte)
