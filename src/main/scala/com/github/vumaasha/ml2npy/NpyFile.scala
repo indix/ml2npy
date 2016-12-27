@@ -98,6 +98,12 @@ class DoubleNpyFile extends NpyFile[Double] {
 
 object NpyTester {
   def main(args: Array[String]): Unit = {
+    /*
+    To test the export start ipython and run following commands
+    import numpy as np
+    np.load('/tmp/test.npy')
+    The imported matrix should contain the values (0.3,0.5)
+     */
     val floatNpyFile:FloatNpyFile = new FloatNpyFile
     val content = floatNpyFile.addElements(Seq(0.3f,0.5f))
     val channel = FileChannel.open(Paths.get("/tmp/test.npy"), StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE)
