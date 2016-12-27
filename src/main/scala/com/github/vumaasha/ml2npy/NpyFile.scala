@@ -64,7 +64,7 @@ class IntNpyFile extends NpyFile[Int] {
   override val dtype: String = "<i4"
   override val dataSize: Int = 4
 
-  override def addElement(content: ByteBuffer)(elem: Int) = content.putLong(elem)
+  override def addElement(content: ByteBuffer)(elem: Int) = content.putInt(elem)
 }
 
 class ShortNpyFile extends NpyFile[Short] {
@@ -109,6 +109,12 @@ object NpyTester {
     val channel = FileChannel.open(Paths.get("/tmp/test.npy"), StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE)
     channel.write(content)
     channel.close()
+
+    val intNpyFile:IntNpyFile = new IntNpyFile
+    val intContent = intNpyFile.addElements(1 to 10)
+    val intChannel = FileChannel.open(Paths.get("/tmp/inttest.npy"), StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE)
+    intChannel.write(intContent)
+    intChannel.close()
 
   }
 }
