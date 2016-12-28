@@ -6,15 +6,11 @@ import java.util.zip.{ZipEntry, ZipOutputStream}
 
 import org.apache.spark.ml.linalg.SparseVector
 
-/**
-  * Created by vumaasha on 25/12/16.
-  */
-
 class ml2npyCSR(data: Seq[Float], indices: Seq[Int], indexPointers: Seq[Int], rows: Int, columns: Int) {
-  val dataB: ByteBuffer = (new FloatNpyFile).addElements(data)
-  val indicesB: ByteBuffer = (new IntNpyFile).addElements(indices)
-  val indexPointersB: ByteBuffer = (new IntNpyFile).addElements(indexPointers)
-  val shapeB: ByteBuffer = (new IntNpyFile).addElements(Array(rows, columns))
+  val dataB: ByteBuffer = NpyFile[Float].addElements(data)
+  val indicesB: ByteBuffer = NpyFile[Int].addElements(indices)
+  val indexPointersB: ByteBuffer = NpyFile[Int].addElements(indexPointers)
+  val shapeB: ByteBuffer = NpyFile[Int].addElements(Array(rows,columns))
 
   val zipOut = {
     val bos = new ByteArrayOutputStream()
