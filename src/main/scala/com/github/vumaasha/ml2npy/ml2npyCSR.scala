@@ -4,7 +4,7 @@ import java.io.{ByteArrayOutputStream, File, FileOutputStream}
 import java.nio.ByteBuffer
 import java.util.zip.{ZipEntry, ZipOutputStream}
 
-import org.apache.spark.ml.linalg.SparseVector
+import org.apache.spark.ml.linalg.{DenseVector, SparseVector, Vector, Vectors}
 
 /**
   * Created by vumaasha on 25/12/16.
@@ -12,7 +12,7 @@ import org.apache.spark.ml.linalg.SparseVector
 
 class ml2npyCSR(data: Seq[Float], indices: Seq[Int], indexPointers: Seq[Int], rows: Int, columns: Int, labels: Seq[Short]*) {
 
-  require(indexPointers.length -1 == rows)
+  require(indexPointers.length - 1 == rows)
 
   val dataB: ByteBuffer = (new FloatNpyFile).addElements(data)
   val indicesB: ByteBuffer = (new IntNpyFile).addElements(indices)
@@ -47,15 +47,23 @@ class ml2npyCSR(data: Seq[Float], indices: Seq[Int], indexPointers: Seq[Int], ro
 }
 
 object ml2npyCSR {
-  def apply(data: Seq[Float], indices: Seq[Int], indexPointers: Seq[Int], rows: Int, columns: Int, labels: Seq[Short]*): ml2npyCSR = new ml2npyCSR(data, indices, indexPointers, rows, columns, labels:_*)
+  def apply(data: Seq[Float], indices: Seq[Int], indexPointers: Seq[Int], rows: Int, columns: Int, labels: Seq[Short]*): ml2npyCSR = new ml2npyCSR(data, indices, indexPointers, rows, columns, labels: _*)
 
-  def apply(vectors: Seq[SparseVector], labels: Seq[Short]*): ml2npyCSR = {
+  def apply(data: Seq[Vector], labels: Seq[Short]*): ml2npyCSR = {
+    val vectors:Seq[SparseVector] = for {
+      vector <- data
+    } yield {
+      vector match {
+        case SparseVector(sz, ic, vs) => new SparseVector(sz, ic, vs)
+        case v => v.toSparse
+      }
+    }
     val indices = vectors.flatMap(_.indices)
     val values: Seq[Float] = vectors.flatMap(_.values).map(_.toFloat)
     val indPtr = vectors.map(_.numActives).toArray.scanLeft(0)(_ + _)
     val rows = vectors.length
     val columns = vectors.map(_.size).max
-    new ml2npyCSR(values, indices, indPtr, rows, columns,labels:_*)
+    new ml2npyCSR(values, indices, indPtr, rows, columns, labels: _*)
   }
 }
 
@@ -85,9 +93,9 @@ object ml2npyCSRTester {
 
 object SparseVectorTester {
   def main(args: Array[String]): Unit = {
-    val x = Seq(new SparseVector(4, Array(0, 1), Array(0.3, 0.5)), new SparseVector(4, Array(1, 3), Array(0.3, 0.5)), new SparseVector(4, Array(1, 2), Array(0.3, 0.5)))
-    val labels = Seq(1.toShort,2.toShort,0.toShort)
-    val csr = ml2npyCSR(x,labels,labels)
+    val x = Seq(new SparseVector(4, Array(0, 1), Array(0.3, 0.7)), new SparseVector(4, Array(1, 3), Array(0.3, 0.5)), new SparseVector(4, Array(1, 2), Array(0.3, 0.5)))
+    val labels = Seq(1.toShort, 2.toShort, 0.toShort)
+    val csr = ml2npyCSR(x, labels, labels)
     val fos = new FileOutputStream(new File("/tmp/csr.npz"))
     csr.zipOut.writeTo(fos)
     csr.zipOut.close()
