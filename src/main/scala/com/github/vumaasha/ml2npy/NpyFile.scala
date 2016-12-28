@@ -70,14 +70,14 @@ class ShortNpyFile extends NpyFile[Short] {
   override val dtype: String = "<i2"
   override val dataSize: Int = 2
 
-  override def addElement(content: ByteBuffer)(elem: Short) = content.putLong(elem)
+  override def addElement(content: ByteBuffer)(elem: Short) = content.putShort(elem)
 }
 
 class ByteNpyFile extends NpyFile[Byte] {
   override val dtype: String = "<i1"
   override val dataSize: Int = 1
 
-  override def addElement(content: ByteBuffer)(elem: Byte) = content.putLong(elem)
+  override def addElement(content: ByteBuffer)(elem: Byte) = content.put(elem)
 }
 
 class FloatNpyFile extends NpyFile[Float] {
