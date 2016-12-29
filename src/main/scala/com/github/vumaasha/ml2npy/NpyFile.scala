@@ -38,11 +38,10 @@ abstract class NpyFile[V] {
 
     val versionByteSize = 2
     val headerByteSize = 2
-    val newLineBytes = "\n".getBytes(StandardCharsets.US_ASCII)
-    val newLineSize = newLineBytes.length
+    val newLineSize = 1
     val unpaddedLength: Int = magic.length + versionByteSize + headerByteSize + description.length + newLineSize
     val isPaddingRequired = (unpaddedLength % 16) != 0
-    val paddingLength = (((unpaddedLength / 16) + 1) * 16) - unpaddedLength
+    val paddingLength = 16 - (unpaddedLength % 16)
     val paddedDescription = {
       if (isPaddingRequired) {
         description + (" " * paddingLength)
@@ -177,7 +176,7 @@ object NpyTester {
     intChannel2.write(intContent2)
     intChannel2.close()
 
-    val data: Inclusive = 3 to 10
+    val data: Inclusive = 1 to 10
     val intContent3 = NpyFile[Int]
     data.foreach(intContent3.addToBuffer)
     val bytes = intContent3.getBytes
