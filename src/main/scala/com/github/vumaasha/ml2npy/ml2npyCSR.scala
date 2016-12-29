@@ -43,7 +43,7 @@ class ml2npyCSR(data: Seq[Float],
     val zos = new ZipOutputStream(bos)
     def addLabels(labels: Seq[Short], index: Int): Unit = {
       require(labels.length == rows)
-      val labelsB = (new ShortNpyFile).addElements(labels)
+      val labelsB = NpyFile[Short].addElements(labels)
       addEntry(zos, s"label_$index", labelsB.array())
     }
     addEntry(zos, "data", dataB.array())
