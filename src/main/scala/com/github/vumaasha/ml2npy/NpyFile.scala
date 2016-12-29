@@ -5,6 +5,7 @@ import java.nio.charset.StandardCharsets
 import java.nio.file.{Paths, StandardOpenOption}
 import java.nio.{ByteBuffer, ByteOrder}
 
+import scala.collection.immutable.Range.Inclusive
 import scala.collection.mutable.ArrayBuffer
 
 
@@ -183,6 +184,27 @@ object NpyTester {
     val intChannel = FileChannel.open(Paths.get("/tmp/inttest.npy"), StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE)
     intChannel.write(intContent)
     intChannel.close()
+
+    val intContent2 = NpyFile[Int].addElements(2 to 20)
+    val intChannel2 = FileChannel.open(Paths.get("/tmp/inttest2.npy"), StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE)
+    intChannel2.write(intContent2)
+    intChannel2.close()
+
+    val data: Inclusive = 3 to 10
+    val intContent3 = NpyFile[Int]
+    data.foreach(intContent3.addToBuffer)
+    val bytes = intContent3.getBytes
+    val intChannel3 = FileChannel.open(Paths.get("/tmp/inttest3.npy"), StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE)
+    intChannel3.write(ByteBuffer.wrap(bytes))
+    intChannel3.close()
+
+    val data2: Inclusive = 11 to 20
+    val intContent4 = NpyFile[Int]
+    data2.foreach(intContent4.addToBuffer)
+    val bytes2 = intContent4.getBytes
+    val intChannel4 = FileChannel.open(Paths.get("/tmp/inttest4.npy"), StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE)
+    intChannel4.write(ByteBuffer.wrap(bytes2))
+    intChannel4.close()
 
   }
 }
