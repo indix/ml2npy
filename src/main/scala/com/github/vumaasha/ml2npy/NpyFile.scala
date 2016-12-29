@@ -96,48 +96,70 @@ abstract class NpyFile[V] {
 }
 
 object NpyFile {
-
-  implicit object IntNpyFile extends NpyFile[Int] {
+  class IntNpyFile extends NpyFile[Int] {
     override val dtype: String = "<i4"
     override val dataSize: Int = 4
 
     override def addElement(content: ByteBuffer)(elem: Int) = content.putInt(elem)
-
   }
 
-  implicit object LongNpyFile extends NpyFile[Long] {
+  implicit object IntNpyFile extends IntNpyFile {
+    def apply() = new IntNpyFile()
+  }
+
+  class LongNpyFile extends NpyFile[Long] {
     override val dtype: String = "<i8"
     override val dataSize: Int = 8
 
     override def addElement(content: ByteBuffer)(elem: Long): ByteBuffer = content.putLong(elem)
   }
 
-  implicit object ShortNpyFile extends NpyFile[Short] {
+  implicit object LongNpyFile extends LongNpyFile {
+    def apply() = new LongNpyFile()
+  }
+
+  class ShortNpyFile extends NpyFile[Short] {
     override val dtype: String = "<i2"
     override val dataSize: Int = 2
 
     override def addElement(content: ByteBuffer)(elem: Short) = content.putShort(elem)
   }
 
-  implicit object ByteNpyFile extends NpyFile[Byte] {
+  implicit object ShortNpyFile extends ShortNpyFile {
+    def apply() = new ShortNpyFile()
+  }
+
+  class ByteNpyFile extends NpyFile[Byte] {
     override val dtype: String = "<i1"
     override val dataSize: Int = 1
 
     override def addElement(content: ByteBuffer)(elem: Byte) = content.put(elem)
   }
 
-  implicit object FloatNpyFile extends NpyFile[Float] {
+  implicit object ByteNpyFile extends ByteNpyFile {
+    def apply() = new ByteNpyFile()
+  }
+
+  class FloatNpyFile extends NpyFile[Float] {
     override val dtype: String = "<f4"
     override val dataSize: Int = 4
 
     override def addElement(content: ByteBuffer)(elem: Float) = content.putFloat(elem)
   }
 
-  implicit object DoubleNpyFile extends NpyFile[Double] {
+  implicit object FloatNpyFile extends FloatNpyFile {
+    def apply() = new FloatNpyFile()
+  }
+
+  class DoubleNpyFile extends NpyFile[Double] {
     override val dtype: String = "<f8"
     override val dataSize: Int = 8
 
     override def addElement(content: ByteBuffer)(elem: Double) = content.putDouble(elem)
+  }
+
+  implicit object DoubleNpyFile extends DoubleNpyFile {
+    def apply() = new DoubleNpyFile()
   }
 
   def apply[V]()(implicit ev: NpyFile[V]): NpyFile[V] = ev
