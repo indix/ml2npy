@@ -14,10 +14,6 @@ import scala.collection.mutable.ArrayBuffer
   */
 abstract class NpyFile[V] {
 
-  val magic: Array[Byte] = 0X93.toByte +: "NUMPY".getBytes(StandardCharsets.US_ASCII)
-  val majorVersion = 1
-  val minorVersion = 0
-  val headerLenth = 70
   /*
   supported dtypes i2,i4,i8,f4,f8
    */
@@ -33,18 +29,25 @@ abstract class NpyFile[V] {
 
   def getHeader(dataLength: Int): ArrayBuffer[Byte] = {
 
-    val header: ArrayBuffer[Byte] = ArrayBuffer()
+    val magic: Array[Byte] = 0X93.toByte +: "NUMPY".getBytes(StandardCharsets.US_ASCII)
+    val majorVersion = 1
+    val minorVersion = 0
+
+    val header: ArrayBuffer[Byte] = ArrayBuffer.empty[Byte]
     val description = s"{'descr': '$dtype', 'fortran_order': False, 'shape': ($dataLength,), }"
 
     val versionByteSize = 2
     val headerByteSize = 2
-    val newLineSize = 1
+    val newLineBytes = "\n".getBytes(StandardCharsets.US_ASCII)
+    val newLineSize = newLineBytes.length
     val unpaddedLength: Int = magic.length + versionByteSize + headerByteSize + description.length + newLineSize
     val isPaddingRequired = (unpaddedLength % 16) != 0
     val paddingLength = (((unpaddedLength / 16) + 1) * 16) - unpaddedLength
-    val paddedDescription = if (isPaddingRequired) {
-      description + (" " * paddingLength)
-    } else description
+    val paddedDescription = {
+      if (isPaddingRequired) {
+        description + (" " * paddingLength)
+      } else description
+    } + "\n"
 
     val headerLength: Int = unpaddedLength + paddingLength
     val content = ByteBuffer.allocate(headerLength)
@@ -60,27 +63,11 @@ abstract class NpyFile[V] {
 
 
   def addElements(data: Seq[V]) = {
-    val dataLength = data.length.toString
-    val description = s"{'descr': '$dtype', 'fortran_order': False, 'shape': ($dataLength,), }"
-
-    val versionByteSize = 2
-    val headerByteSize = 2
-    val newLineSize = 1
-    val unpaddedLength: Int = magic.length + versionByteSize + headerByteSize + description.length + newLineSize
-    val isPaddingRequired = (unpaddedLength % 16) != 0
-    val paddingLength = (((unpaddedLength / 16) + 1) * 16) - unpaddedLength
-    val paddedDescription = if (isPaddingRequired) {
-      description + (" " * paddingLength)
-    } else description
-
-    val headerLength: Int = unpaddedLength + paddingLength
+    val header = getHeader(data.length)
+    val headerLength: Int = header.length
     val content = ByteBuffer.allocate(headerLength + (data.length * dataSize))
       .order(ByteOrder.LITTLE_ENDIAN)
-      .put(magic)
-      .put(majorVersion.toByte)
-      .put(minorVersion.toByte)
-      .putShort(paddedDescription.length.toShort)
-      .put(paddedDescription.getBytes(StandardCharsets.US_ASCII))
+      .put(header.toArray)
 
     data.foreach(addElement(content))
     content.flip
@@ -198,13 +185,13 @@ object NpyTester {
     intChannel3.write(ByteBuffer.wrap(bytes))
     intChannel3.close()
 
-    val data2: Inclusive = 11 to 20
+/*    val data2: Inclusive = 11 to 20
     val intContent4 = NpyFile[Int]
     data2.foreach(intContent4.addToBuffer)
     val bytes2 = intContent4.getBytes
     val intChannel4 = FileChannel.open(Paths.get("/tmp/inttest4.npy"), StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE)
     intChannel4.write(ByteBuffer.wrap(bytes2))
-    intChannel4.close()
+    intChannel4.close()*/
 
   }
 }
