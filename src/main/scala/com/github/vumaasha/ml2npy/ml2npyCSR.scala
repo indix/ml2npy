@@ -21,14 +21,14 @@ class ml2npyCSR(data: Seq[Float],
 
   require(indexPointers.length - 1 == rows)
 
-  val dataB: ByteBuffer = (new FloatNpyFile).addElements(data)
-  val indicesB: ByteBuffer = (new IntNpyFile).addElements(indices)
-  val indexPointersB: ByteBuffer = (new IntNpyFile).addElements(indexPointers)
+  val dataB: ByteBuffer = NpyFile[Float].addElements(data)
+  val indicesB: ByteBuffer = NpyFile[Int].addElements(indices)
+  val indexPointersB: ByteBuffer = NpyFile[Int].addElements(indexPointers)
   val dataShape: mutable.WrappedArray[Int] = Array(rows, columns)
-  val dataShapeB: ByteBuffer = (new IntNpyFile).addElements(dataShape)
-  val labelsB: ByteBuffer = (new ShortNpyFile).addElements(labels)
+  val dataShapeB: ByteBuffer = NpyFile[Int].addElements(dataShape)
+  val labelsB: ByteBuffer = NpyFile[Short].addElements(labels)
   val labelsShape: mutable.WrappedArray[Int] = Array(rows, numLabels)
-  val labelsShapeB: ByteBuffer = (new IntNpyFile).addElements(labelsShape)
+  val labelsShapeB: ByteBuffer = NpyFile[Int].addElements(labelsShape)
 
 
   private def addEntry(zos: ZipOutputStream, file: String, bytes: Array[Byte]): Unit = {
