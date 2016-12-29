@@ -97,6 +97,10 @@ abstract class NpyFile[V] {
 }
 
 object NpyFile {
+  trait NpyFileFactory[V] {
+    def create(): NpyFile[V]
+  }
+
   class IntNpyFile extends NpyFile[Int] {
     override val dtype: String = "<i4"
     override val dataSize: Int = 4
@@ -104,8 +108,8 @@ object NpyFile {
     override def addElement(content: ByteBuffer)(elem: Int) = content.putInt(elem)
   }
 
-  implicit object IntNpyFile extends IntNpyFile {
-    def apply() = new IntNpyFile()
+  implicit object IntNpyFile extends NpyFileFactory[Int] {
+    def create() = new IntNpyFile()
   }
 
   class LongNpyFile extends NpyFile[Long] {
@@ -115,8 +119,8 @@ object NpyFile {
     override def addElement(content: ByteBuffer)(elem: Long): ByteBuffer = content.putLong(elem)
   }
 
-  implicit object LongNpyFile extends LongNpyFile {
-    def apply() = new LongNpyFile()
+  implicit object LongNpyFile extends NpyFileFactory[Long] {
+    def create() = new LongNpyFile()
   }
 
   class ShortNpyFile extends NpyFile[Short] {
@@ -126,8 +130,8 @@ object NpyFile {
     override def addElement(content: ByteBuffer)(elem: Short) = content.putShort(elem)
   }
 
-  implicit object ShortNpyFile extends ShortNpyFile {
-    def apply() = new ShortNpyFile()
+  implicit object ShortNpyFile extends NpyFileFactory[Short] {
+    def create() = new ShortNpyFile()
   }
 
   class ByteNpyFile extends NpyFile[Byte] {
@@ -137,8 +141,8 @@ object NpyFile {
     override def addElement(content: ByteBuffer)(elem: Byte) = content.put(elem)
   }
 
-  implicit object ByteNpyFile extends ByteNpyFile {
-    def apply() = new ByteNpyFile()
+  implicit object ByteNpyFile  extends NpyFileFactory[Byte] {
+    def create() = new ByteNpyFile()
   }
 
   class FloatNpyFile extends NpyFile[Float] {
@@ -148,8 +152,8 @@ object NpyFile {
     override def addElement(content: ByteBuffer)(elem: Float) = content.putFloat(elem)
   }
 
-  implicit object FloatNpyFile extends FloatNpyFile {
-    def apply() = new FloatNpyFile()
+  implicit object FloatNpyFile extends NpyFileFactory[Float] {
+    def create() = new FloatNpyFile()
   }
 
   class DoubleNpyFile extends NpyFile[Double] {
@@ -159,11 +163,11 @@ object NpyFile {
     override def addElement(content: ByteBuffer)(elem: Double) = content.putDouble(elem)
   }
 
-  implicit object DoubleNpyFile extends DoubleNpyFile {
-    def apply() = new DoubleNpyFile()
+  implicit object DoubleNpyFile extends NpyFileFactory[Double] {
+    def create() = new DoubleNpyFile()
   }
 
-  def apply[V]()(implicit ev: NpyFile[V]): NpyFile[V] = ev
+  def apply[V]()(implicit ev: NpyFileFactory[V]): NpyFile[V] = ev.create()
 }
 
 object NpyTester {
