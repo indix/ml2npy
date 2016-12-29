@@ -75,7 +75,7 @@ object ml2NpyTester {
     transformedTopData.select("tokenIDF").printSchema
     transformedTopData.select("doc", "tokens").show()
 
-    val npyData = transformedTopData.select("tokenIDF", "topLevelId").rdd.repartition(2).mapPartitions(x => {
+/*    val npyData = transformedTopData.select("tokenIDF", "topLevelId").rdd.repartition(2).mapPartitions(x => {
       val vectors = for {
         row <- x
       } yield {
@@ -92,7 +92,7 @@ object ml2NpyTester {
         row.getAs[Vector](0)
       }
       Seq((index, ml2npyCSR(vectors.toSeq).zipOut))
-    }.iterator)
+    }.iterator)*/
 
 
 
