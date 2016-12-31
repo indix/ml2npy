@@ -4,9 +4,11 @@ import java.io.{ByteArrayOutputStream, File, FileOutputStream}
 import java.nio.ByteBuffer
 import java.util.zip.{ZipEntry, ZipOutputStream}
 
+import org.apache.hadoop.mapreduce.{RecordWriter, TaskAttemptContext}
 import org.apache.spark.ml.linalg.{DenseVector, SparseVector, Vector, Vectors}
 
 import scala.collection.mutable
+import scala.collection.mutable.ArrayBuffer
 
 /**
   * Created by vumaasha on 25/12/16.
@@ -56,6 +58,19 @@ class ml2npyCSR(data: Seq[Float],
     bos
   }
 
+}
+
+class ml2npyCSRBuffer extends RecordWriter[Vector, Vector] {
+  val data: ArrayBuffer[(Vector, Vector)] = ArrayBuffer.empty
+
+  override def write(key: Vector, value: Vector): Unit = {
+    val tuple: (Vector, Vector) = (key, value)
+    data += tuple
+  }
+
+  override def close(context: TaskAttemptContext): Unit = {
+    val csr = ml2npyCSR(data.iterator)
+  }
 }
 
 object ml2npyCSR {
@@ -121,9 +136,9 @@ object ml2npyCSRTester {
 object SparseVectorTester {
   def main(args: Array[String]): Unit = {
     val x = Seq(
-      (new SparseVector(4, Array(0, 1), Array(0.3, 0.7)), new DenseVector(Array(1,0))),
-      (new SparseVector(4, Array(1, 3), Array(0.3, 0.5)), new DenseVector(Array(2,1))),
-      (new SparseVector(4, Array(1, 2), Array(0.3, 0.5)), new DenseVector(Array(2,1)))
+      (new SparseVector(4, Array(0, 1), Array(0.3, 0.7)), new DenseVector(Array(1, 0))),
+      (new SparseVector(4, Array(1, 3), Array(0.3, 0.5)), new DenseVector(Array(2, 1))),
+      (new SparseVector(4, Array(1, 2), Array(0.3, 0.5)), new DenseVector(Array(2, 1)))
     )
     val labels = Seq(1.toShort, 2.toShort, 0.toShort)
     val csr = ml2npyCSR(x.iterator)

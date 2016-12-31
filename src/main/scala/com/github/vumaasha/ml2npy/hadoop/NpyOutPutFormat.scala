@@ -1,19 +1,16 @@
 package com.github.vumaasha.ml2npy.hadoop
 
-import org.apache.hadoop.fs.{FileSystem, Path}
-import org.apache.hadoop.io.SequenceFile.CompressionType
-import org.apache.hadoop.io.{BytesWritable, NullWritable}
-import org.apache.hadoop.mapred.{FileOutputFormat, JobConf, RecordWriter}
-import org.apache.hadoop.util.Progressable
+import com.github.vumaasha.ml2npy.ml2npyCSRBuffer
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat
+import org.apache.hadoop.mapreduce.{RecordWriter, TaskAttemptContext}
 import org.apache.spark.ml.linalg.Vector
 
 /**
   * Created by vumaasha on 29/12/16.
   */
-/*class NpyOutPutFormat extends FileOutputFormat[Vector,Vector]{
-  override def getRecordWriter(ignored: FileSystem, job: JobConf, name: String, progress: Progressable): RecordWriter[BytesWritable, NullWritable] = {
-    val file:Path = FileOutputFormat.getTaskOutputPath(job,name)
-    val fs:FileSystem = file.getFileSystem(job)
-    val compressionType:CompressionType = CompressionType.NONE
-  }
-}*/
+class NpyOutPutFormat extends FileOutputFormat[Vector, Vector] {
+  override def getRecordWriter(job: TaskAttemptContext): RecordWriter[Vector, Vector] = {
+    new ml2npyCSRBuffer
+}
+
+}
