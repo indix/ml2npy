@@ -3,9 +3,9 @@ package com.github.vumaasha.ml2npy
 import java.io.{ByteArrayOutputStream, File, FileOutputStream}
 import java.util.zip.{ZipEntry, ZipOutputStream}
 
-import org.apache.hadoop.fs.Path
+import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.hadoop.io.SequenceFile.CompressionType
-import org.apache.hadoop.mapreduce.{RecordWriter, TaskAttemptContext}
+import org.apache.hadoop.mapred.{RecordWriter, Reporter}
 import org.apache.spark.ml.linalg.{DenseVector, SparseVector, Vector}
 
 /**
@@ -69,11 +69,9 @@ class Ml2NpyCSR {
 
 }
 
-class Ml2NpyCSRWriter(context: TaskAttemptContext, file: Path) extends RecordWriter[Vector, Vector] {
+class Ml2NpyCSRWriter(fs: FileSystem, file: Path) extends RecordWriter[Vector, Vector] {
 
-  val conf = context.getConfiguration
   val compressionType: CompressionType = CompressionType.NONE
-  val fs = file.getFileSystem(conf)
   val out = fs.create(file)
   val ml2NpyCSR = new Ml2NpyCSR
 
@@ -81,9 +79,10 @@ class Ml2NpyCSRWriter(context: TaskAttemptContext, file: Path) extends RecordWri
     ml2NpyCSR.addRecord(key, value)
   }
 
-  override def close(context: TaskAttemptContext): Unit = {
+  override def close(reporter: Reporter): Unit = {
     out.write(ml2NpyCSR.getBytes)
     out.close()
+
   }
 }
 

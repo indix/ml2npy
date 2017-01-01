@@ -1,17 +1,18 @@
 package com.github.vumaasha.ml2npy
 
-import org.apache.spark.sql.{Row, SparkSession}
+import com.github.vumaasha.ml2npy.hadoop.NpyOutPutFormat
+import org.apache.spark.ml.Pipeline
+import org.apache.spark.ml.feature._
+import org.apache.spark.ml.linalg.{DenseVector, SparseVector, Vector}
+import org.apache.spark.sql.SparkSession
 
 import scala.util._
-import org.apache.spark.ml.feature._
-import org.apache.spark.ml.{Pipeline, PipelineModel}
-import org.apache.spark.ml.linalg._
 
 
 case class TrainingRecord(storeId: Long, url: String, title: String, breadCrumbs: String, brandText: String, categoryPath: String, price: Double, isbn: String, specificationText: String, leafId: String,
                           topLevelId: String)
 
-case class TopLevelTrainingRecord(url: String, doc: String, topLevelId: String)
+case class SimpleTrainingRecord(url: String, doc: String, topLevelId: Short, categoryId: Short)
 
 /**
   * Created by vumaasha on 28/12/16.
@@ -45,7 +46,7 @@ object ml2NpyTester {
             if (isSpecs) " " + record.specificationText else " "
           }
         }
-        TopLevelTrainingRecord(record.url, doc, record.topLevelId)
+        SimpleTrainingRecord(record.url, doc, Integer.parseInt(record.topLevelId).toShort, Integer.parseInt(record.leafId).toShort)
       }
     })
 
@@ -75,26 +76,12 @@ object ml2NpyTester {
     transformedTopData.select("tokenIDF").printSchema
     transformedTopData.select("doc", "tokens").show()
 
-/*    val npyData = transformedTopData.select("tokenIDF", "topLevelId").rdd.repartition(2).mapPartitions(x => {
-      val vectors = for {
-        row <- x
-      } yield {
-        row.getAs[Vector](0)
-      }
-      Seq(ml2npyCSR(vectors.toSeq).zipOut)
-    }.iterator)
 
-    val cvData = transformedTopData.select("tokenIDF", "topLevelId").rdd.repartition(2)
-    cvData.mapPartitionsWithIndex((index: Int, it: Iterator[Row]) => {
-      val vectors = for {
-        row <- it
-      } yield {
-        row.getAs[Vector](0)
-      }
-      Seq((index, ml2npyCSR(vectors.toSeq).zipOut))
-    }.iterator)*/
-
-
+    val idfData = transformedTopData.select("tokenIDF", "topLevelId", "categoryId")
+      .map(x => (x.getAs[Vector](0), new DenseVector(Array(x.getShort(1), x.getShort(2)))))
+      .repartition(2)
+      .rdd
+      .saveAsHadoopFile("/home/vumaasha/Downloads/npytest",classOf[Vector],classOf[Vector],classOf[NpyOutPutFormat])
 
   }
 
