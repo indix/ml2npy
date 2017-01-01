@@ -71,7 +71,6 @@ class Ml2NpyCSR {
 
 class Ml2NpyCSRWriter(fs: FileSystem, file: Path) extends RecordWriter[Vector, Vector] {
 
-  val compressionType: CompressionType = CompressionType.NONE
   val out = fs.create(file)
   val ml2NpyCSR = new Ml2NpyCSR
 
