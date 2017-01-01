@@ -4,6 +4,8 @@ import java.io.{ByteArrayOutputStream, File, FileOutputStream}
 import java.nio.ByteBuffer
 import java.util.zip.{ZipEntry, ZipOutputStream}
 
+import org.apache.hadoop.fs.Path
+import org.apache.hadoop.io.SequenceFile.CompressionType
 import org.apache.hadoop.mapreduce.{RecordWriter, TaskAttemptContext}
 import org.apache.spark.ml.linalg.{DenseVector, SparseVector, Vector, Vectors}
 
@@ -60,7 +62,7 @@ class ml2npyCSR(data: Seq[Float],
 
 }
 
-class ml2npyCSRBuffer extends RecordWriter[Vector, Vector] {
+class ml2npyCSRBuffer(file:Path) extends RecordWriter[Vector, Vector] {
   val data: ArrayBuffer[(Vector, Vector)] = ArrayBuffer.empty
 
   override def write(key: Vector, value: Vector): Unit = {
@@ -69,6 +71,9 @@ class ml2npyCSRBuffer extends RecordWriter[Vector, Vector] {
   }
 
   override def close(context: TaskAttemptContext): Unit = {
+    val conf = context.getConfiguration
+    val compressionType:CompressionType = CompressionType.NONE
+    val fs = file.getFileSystem(conf)
     val csr = ml2npyCSR(data.iterator)
   }
 }
