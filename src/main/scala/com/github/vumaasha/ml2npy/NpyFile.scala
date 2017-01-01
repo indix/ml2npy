@@ -6,7 +6,6 @@ import java.nio.file.{Paths, StandardOpenOption}
 import java.nio.{ByteBuffer, ByteOrder}
 
 import scala.collection.immutable.Range.Inclusive
-import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 
 
@@ -15,6 +14,10 @@ import scala.collection.mutable.ArrayBuffer
   */
 abstract class NpyFile[V] {
 
+  val magic: Array[Byte] = 0X93.toByte +: "NUMPY".getBytes(StandardCharsets.US_ASCII)
+  val majorVersion = 1
+  val minorVersion = 0
+  val headerLenth = 70
   /*
   supported dtypes i2,i4,i8,f4,f8
    */
@@ -30,11 +33,7 @@ abstract class NpyFile[V] {
 
   def getHeader(dataLength: Int): ArrayBuffer[Byte] = {
 
-    val magic: Array[Byte] = 0X93.toByte +: "NUMPY".getBytes(StandardCharsets.US_ASCII)
-    val majorVersion = 1
-    val minorVersion = 0
-
-    val header: ArrayBuffer[Byte] = ArrayBuffer.empty[Byte]
+    val header: ArrayBuffer[Byte] = ArrayBuffer()
     val description = s"{'descr': '$dtype', 'fortran_order': False, 'shape': ($dataLength,), }"
 
     val versionByteSize = 2
@@ -42,12 +41,10 @@ abstract class NpyFile[V] {
     val newLineSize = 1
     val unpaddedLength: Int = magic.length + versionByteSize + headerByteSize + description.length + newLineSize
     val isPaddingRequired = (unpaddedLength % 16) != 0
-    val paddingLength = 16 - (unpaddedLength % 16)
-    val paddedDescription = {
-      if (isPaddingRequired) {
-        description + (" " * paddingLength)
-      } else description
-    } + "\n"
+    val paddingLength = (((unpaddedLength / 16) + 1) * 16) - unpaddedLength
+    val paddedDescription = if (isPaddingRequired) {
+      description + (" " * paddingLength)
+    } else description
 
     val headerLength: Int = unpaddedLength + paddingLength
     val content = ByteBuffer.allocate(headerLength)
@@ -63,11 +60,27 @@ abstract class NpyFile[V] {
 
 
   def addElements(data: Seq[V]) = {
-    val header = getHeader(data.length)
-    val headerLength: Int = header.length
+    val dataLength = data.length.toString
+    val description = s"{'descr': '$dtype', 'fortran_order': False, 'shape': ($dataLength,), }"
+
+    val versionByteSize = 2
+    val headerByteSize = 2
+    val newLineSize = 1
+    val unpaddedLength: Int = magic.length + versionByteSize + headerByteSize + description.length + newLineSize
+    val isPaddingRequired = (unpaddedLength % 16) != 0
+    val paddingLength = (((unpaddedLength / 16) + 1) * 16) - unpaddedLength
+    val paddedDescription = if (isPaddingRequired) {
+      description + (" " * paddingLength)
+    } else description
+
+    val headerLength: Int = unpaddedLength + paddingLength
     val content = ByteBuffer.allocate(headerLength + (data.length * dataSize))
       .order(ByteOrder.LITTLE_ENDIAN)
-      .put(header.toArray)
+      .put(magic)
+      .put(majorVersion.toByte)
+      .put(minorVersion.toByte)
+      .putShort(paddedDescription.length.toShort)
+      .put(paddedDescription.getBytes(StandardCharsets.US_ASCII))
 
     data.foreach(addElement(content))
     content.flip
@@ -78,13 +91,16 @@ abstract class NpyFile[V] {
 
   def addToBuffer(elem:V):Unit = {
     val buffer: ByteBuffer = ByteBuffer.allocate(dataSize).order(ByteOrder.LITTLE_ENDIAN)
-    val elemBytes: mutable.ArrayOps[Byte] = addElement(buffer)(elem).array()
-    dataBuffer ++= elemBytes
+    dataBuffer ++= addElement(buffer)(elem).array()
     numElements += 1
   }
 }
 
 object NpyFile {
+  trait NpyFileFactory[V] {
+    def create(): NpyFile[V]
+  }
+
   class IntNpyFile extends NpyFile[Int] {
     override val dtype: String = "<i4"
     override val dataSize: Int = 4
@@ -92,8 +108,8 @@ object NpyFile {
     override def addElement(content: ByteBuffer)(elem: Int) = content.putInt(elem)
   }
 
-  implicit object IntNpyFile extends IntNpyFile {
-    def apply() = new IntNpyFile()
+  implicit object IntNpyFile extends NpyFileFactory[Int] {
+    def create() = new IntNpyFile()
   }
 
   class LongNpyFile extends NpyFile[Long] {
@@ -103,8 +119,8 @@ object NpyFile {
     override def addElement(content: ByteBuffer)(elem: Long): ByteBuffer = content.putLong(elem)
   }
 
-  implicit object LongNpyFile extends LongNpyFile {
-    def apply() = new LongNpyFile()
+  implicit object LongNpyFile extends NpyFileFactory[Long] {
+    def create() = new LongNpyFile()
   }
 
   class ShortNpyFile extends NpyFile[Short] {
@@ -114,8 +130,8 @@ object NpyFile {
     override def addElement(content: ByteBuffer)(elem: Short) = content.putShort(elem)
   }
 
-  implicit object ShortNpyFile extends ShortNpyFile {
-    def apply() = new ShortNpyFile()
+  implicit object ShortNpyFile extends NpyFileFactory[Short] {
+    def create() = new ShortNpyFile()
   }
 
   class ByteNpyFile extends NpyFile[Byte] {
@@ -125,8 +141,8 @@ object NpyFile {
     override def addElement(content: ByteBuffer)(elem: Byte) = content.put(elem)
   }
 
-  implicit object ByteNpyFile extends ByteNpyFile {
-    def apply() = new ByteNpyFile()
+  implicit object ByteNpyFile  extends NpyFileFactory[Byte] {
+    def create() = new ByteNpyFile()
   }
 
   class FloatNpyFile extends NpyFile[Float] {
@@ -136,8 +152,8 @@ object NpyFile {
     override def addElement(content: ByteBuffer)(elem: Float) = content.putFloat(elem)
   }
 
-  implicit object FloatNpyFile extends FloatNpyFile {
-    def apply() = new FloatNpyFile()
+  implicit object FloatNpyFile extends NpyFileFactory[Float] {
+    def create() = new FloatNpyFile()
   }
 
   class DoubleNpyFile extends NpyFile[Double] {
@@ -147,11 +163,11 @@ object NpyFile {
     override def addElement(content: ByteBuffer)(elem: Double) = content.putDouble(elem)
   }
 
-  implicit object DoubleNpyFile extends DoubleNpyFile {
-    def apply() = new DoubleNpyFile()
+  implicit object DoubleNpyFile extends NpyFileFactory[Double] {
+    def create() = new DoubleNpyFile()
   }
 
-  def apply[V]()(implicit ev: NpyFile[V]): NpyFile[V] = ev
+  def apply[V]()(implicit ev: NpyFileFactory[V]): NpyFile[V] = ev.create()
 }
 
 object NpyTester {
@@ -178,7 +194,7 @@ object NpyTester {
     intChannel2.write(intContent2)
     intChannel2.close()
 
-    val data: Inclusive = 1 to 10
+    val data: Inclusive = 3 to 10
     val intContent3 = NpyFile[Int]
     data.foreach(intContent3.addToBuffer)
     val bytes = intContent3.getBytes
@@ -186,13 +202,13 @@ object NpyTester {
     intChannel3.write(ByteBuffer.wrap(bytes))
     intChannel3.close()
 
-/*    val data2: Inclusive = 11 to 20
+    val data2: Inclusive = 11 to 20
     val intContent4 = NpyFile[Int]
     data2.foreach(intContent4.addToBuffer)
     val bytes2 = intContent4.getBytes
     val intChannel4 = FileChannel.open(Paths.get("/tmp/inttest4.npy"), StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE)
     intChannel4.write(ByteBuffer.wrap(bytes2))
-    intChannel4.close()*/
+    intChannel4.close()
 
   }
 }
