@@ -71,7 +71,7 @@ class Ml2NpyCSR {
 
 class Ml2NpyCSRWriter(fs: FileSystem, file: Path) extends RecordWriter[Vector, Vector] {
 
-  val out = fs.create(file)
+  val out = fs.create(file,true)
   val ml2NpyCSR = new Ml2NpyCSR
 
   override def write(key: Vector, value: Vector): Unit = {
