@@ -48,6 +48,7 @@ class Ml2NpyCSR {
     }
     val bos = new ByteArrayOutputStream()
     val zos = new ZipOutputStream(bos)
+    zos.setLevel(9)
 
     val dataShape = Array(rows, columns)
     val dataShapeB = NpyFile[Int].addElements(dataShape)
