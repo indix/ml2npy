@@ -1,10 +1,12 @@
 package com.github.vumaasha.ml2npy
 
 import com.github.vumaasha.ml2npy.hadoop.NpyOutPutFormat
+import com.github.vumaasha.ml2npy.text.CooccurrenceTokenizer
 import org.apache.spark.ml.Pipeline
 import org.apache.spark.ml.feature._
 import org.apache.spark.ml.linalg.{DenseVector, SparseVector, Vector}
 import org.apache.spark.sql.SparkSession
+
 import scala.util._
 
 
@@ -13,7 +15,7 @@ case class TrainingRecord(storeId: Long, url: String, title: String, breadCrumbs
 
 case class SimpleTrainingRecord(url: String, doc: String, topLevelId: Short, categoryId: Short)
 
-case class TFIdfModel(vocab: Array[String], idf: Vector)
+case class TFIdfModel(vocab: Array[String], idf: Option[Vector])
 
 /**
   * Created by vumaasha on 28/12/16.
@@ -55,7 +57,7 @@ object ml2NpyTester {
       }
     })
 
-    val docTokenizer = new RegexTokenizer()
+    val docTokenizer = new CooccurrenceTokenizer()
       .setGaps(false)
       .setMinTokenLength(3)
       .setToLowercase(true)
@@ -67,26 +69,27 @@ object ml2NpyTester {
       .setMinDF(100)
       .setInputCol("tokens")
       .setOutputCol("tokenCounts")
+      .setBinary(true)
 
-    val docIDF = new IDF()
+/*    val docIDF = new IDF()
       .setInputCol("tokenCounts")
-      .setOutputCol("tokenIDF")
+      .setOutputCol("tokenIDF")*/
 
     val normalizer = new Normalizer()
-      .setInputCol("tokenIDF")
-      .setOutputCol("normalizedTokenIDF")
+      .setInputCol("tokenCounts")
+      .setOutputCol("normalizedTokenVector")
 
     val pipeline = new Pipeline()
-      .setStages(Array(docTokenizer, docCV, docIDF, normalizer))
+      .setStages(Array(docTokenizer, docCV, normalizer))
 
     val ppModel = pipeline.fit(toplevelTrainingRecords)
 
     val transformedTopData = ppModel.transform(toplevelTrainingRecords)
 
-    transformedTopData.select("doc", "tokens", "normalizedTokenIDF").show()
+    transformedTopData.select("doc", "tokens", "normalizedTokenVector").show()
 
 
-    val idfData = transformedTopData.select("normalizedTokenIDF", "topLevelId", "categoryId")
+    val idfData = transformedTopData.select("normalizedTokenVector", "topLevelId", "categoryId")
       .map(x => (x.getAs[Vector](0), new DenseVector(Array(x.getShort(1), x.getShort(2)))))
       .repartition(numParts)
       .rdd
@@ -95,10 +98,12 @@ object ml2NpyTester {
     val cvModel = ppModel.stages(1) match {
       case x: CountVectorizerModel => x
     }
-    val idfModel = ppModel.stages(2) match {
+/*    val idfModel = ppModel.stages(2) match {
       case x: IDFModel => x
     }
-    val tfidf: TFIdfModel = TFIdfModel(cvModel.vocabulary, idfModel.idf)
+    val tfidf: TFIdfModel = TFIdfModel(cvModel.vocabulary, Some(idfModel.idf))*/
+
+    val tfidf = TFIdfModel(cvModel.vocabulary,None)
     val data: Seq[TFIdfModel] = Seq(tfidf)
     val tfidfDF = spark.createDataFrame[TFIdfModel](data).coalesce(1).toDF()
     tfidfDF.write.json(s"$outputPath/tfidfModel")
