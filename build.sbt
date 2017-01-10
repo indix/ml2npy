@@ -6,3 +6,5 @@ scalaVersion := "2.11.8"
 
 libraryDependencies += "org.apache.spark" % "spark-mllib_2.11" % "2.0.0-preview" % "provided"
 libraryDependencies += "log4j" % "log4j" % "1.2.17" % "provided"
+libraryDependencies += "org.scalactic" %% "scalactic" % "2.2.3"
+libraryDependencies += "org.scalatest" %% "scalatest" % "2.2.3" % "test"
