@@ -12,7 +12,7 @@ import sys.process._
   */
 class Ml2NpyCSRSpec extends FlatSpec{
     val nosetestspath="/home/fermat/anaconda2/bin/nosetests "
-    val pathToTest = "/home/fermat/workspace/ml2npy/src/test/resources/Npytest.py:"
+    val pathToTest = "/home/fermat/workspace/ml2npy/src/test/python/Npytest.py:"
 
     "ML2NpyFile" should "Convert to CSR matrix" in {
 
