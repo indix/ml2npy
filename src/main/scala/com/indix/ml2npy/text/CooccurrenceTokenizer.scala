@@ -1,4 +1,4 @@
-package com.github.vumaasha.ml2npy.text
+package com.indix.ml2npy.text
 
 import org.apache.spark.ml.feature.{RegexTokenizer, StopWordsRemover}
 

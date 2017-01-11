@@ -1,6 +1,6 @@
-package com.github.vumaasha.ml2npy.hadoop
+package com.indix.ml2npy.hadoop
 
-import com.github.vumaasha.ml2npy.Ml2NpyCSRWriter
+import com.indix.ml2npy.Ml2NpyCSRWriter
 import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.hadoop.mapred.{FileOutputFormat, JobConf, RecordWriter}
 import org.apache.hadoop.util.Progressable
