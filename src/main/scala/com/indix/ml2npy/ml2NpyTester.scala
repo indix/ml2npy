@@ -1,7 +1,7 @@
-package com.github.vumaasha.ml2npy
+package com.indix.ml2npy
 
-import com.github.vumaasha.ml2npy.hadoop.NpyOutPutFormat
-import com.github.vumaasha.ml2npy.text.CooccurrenceTokenizer
+import com.indix.ml2npy.hadoop.NpyOutPutFormat
+import com.indix.ml2npy.text.CooccurrenceTokenizer
 import org.apache.spark.ml.Pipeline
 import org.apache.spark.ml.feature._
 import org.apache.spark.ml.linalg.{DenseVector, SparseVector, Vector}
