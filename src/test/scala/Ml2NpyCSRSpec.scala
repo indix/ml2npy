@@ -5,8 +5,8 @@ import java.nio.file.{Paths, StandardOpenOption}
 import com.indix.ml2npy.Ml2NpyCSR
 import org.apache.spark.ml.linalg.{DenseVector, SparseVector, Vector}
 import org.scalatest.FlatSpec
-
 import sys.process._
+
 /**
   * Created by fermat on 10/1/17.
   */
