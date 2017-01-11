@@ -1,4 +1,6 @@
-# ml2npy -Export spark ml SparseVectors as numpy csr matrix
+# ml2npy - Export spark ml SparseVectors as numpy csr matrix
+
+[![Build Status](https://app.snap-ci.com/indix/ml2npy/branch/master/build_image)](https://app.snap-ci.com/indix/ml2npy/branch/master)
 
 The aim of this project is to provide that tools that efficiently implement the components that are required for large scale text mining. 
 
