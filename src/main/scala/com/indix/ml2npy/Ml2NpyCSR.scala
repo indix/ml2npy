@@ -85,39 +85,5 @@ class Ml2NpyCSRWriter(fs: FileSystem, file: Path) extends RecordWriter[Vector, V
 
   }
 }
-
-
-object Ml2NpyCSRTester {
-  def main(args: Array[String]): Unit = {
-    /*
-    To test the export start ipython and run following commands
-
-    import numpy as np
-    from scipy.sparse import csr_matrix
-    loader = np.load('/tmp/test.npz')
-    csr_matrix((loader['data'],loader['indices'],loader['indptr']),shape=loader['shape']).toarray()
-
-    The imported matrix should contain the below values
-    array([[ 0.        ,  0.1       ],
-       [ 0.        ,  0.30000001],
-       [ 0.5       ,  0.        ]], dtype=float32)
-     */
-
-    val csrGen = new Ml2NpyCSR
-    val data: Seq[Vector] = Seq(
-      new SparseVector(3, Array(0), Array(0.1)),
-      new SparseVector(3, Array(1), Array(0.2)),
-      new SparseVector(3, Array(2), Array(0.3))
-    )
-    val labels = Seq(
-      new DenseVector(Array(0, 1)),
-      new DenseVector(Array(1, 0)),
-      new DenseVector(Array(1, 0))
-    )
-    data.zip(labels).foreach(tup => csrGen.addRecord(tup._1, tup._2))
-    val fos = new FileOutputStream(new File("/tmp/data.npz"))
-    fos.write(csrGen.getBytes)
-    fos.close()
-  }
 }
 
