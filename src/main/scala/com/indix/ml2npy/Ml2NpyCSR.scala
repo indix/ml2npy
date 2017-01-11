@@ -82,8 +82,6 @@ class Ml2NpyCSRWriter(fs: FileSystem, file: Path) extends RecordWriter[Vector, V
   override def close(reporter: Reporter): Unit = {
     out.write(ml2NpyCSR.getBytes)
     out.close()
-
   }
-}
 }
 
