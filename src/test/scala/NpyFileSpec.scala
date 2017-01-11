@@ -8,7 +8,7 @@ import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 
 import org.scalatest.FlatSpec
-import com.github.vumaasha.ml2npy.NpyFile
+import com.indix.ml2npy.NpyFile
 
 /**
   * Created by fermat on 10/1/17.

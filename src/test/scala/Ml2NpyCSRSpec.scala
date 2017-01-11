@@ -2,7 +2,7 @@ import java.io.{File, FileOutputStream}
 import java.nio.channels.FileChannel
 import java.nio.file.{Paths, StandardOpenOption}
 
-import com.github.vumaasha.ml2npy.Ml2NpyCSR
+import com.indix.ml2npy.Ml2NpyCSR
 import org.apache.spark.ml.linalg.{DenseVector, SparseVector, Vector}
 import org.scalatest.FlatSpec
 

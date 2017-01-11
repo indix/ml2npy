@@ -1,4 +1,4 @@
-package com.github.vumaasha.ml2npy
+package com.indix.ml2npy
 
 import java.io.{ByteArrayOutputStream, File, FileOutputStream}
 import java.util.zip.{ZipEntry, ZipOutputStream}
