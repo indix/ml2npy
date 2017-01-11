@@ -11,6 +11,7 @@ import sys.process._
   * Created by fermat on 10/1/17.
   */
 class Ml2NpyCSRSpec extends FlatSpec{
+    /** makesure your noses tests is in path before executing this add path : /anaconda/bin to you env variable**/
     val nosetestspath="nosetests "
     val pathToTest = getClass.getResource("/python/Npytest.py").getPath+":"
 
