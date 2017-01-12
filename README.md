@@ -2,6 +2,8 @@
 
 [![Build Status](https://app.snap-ci.com/indix/ml2npy/branch/master/build_image)](https://app.snap-ci.com/indix/ml2npy/branch/master)
 
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.indix/ml2npy_2.11/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.indix/ml2npy_2.11)
+
 The aim of this project is to provide that tools that efficiently implement the components that are required for large scale text mining. 
 
 The idea for this project came out from experience,
