@@ -9,7 +9,7 @@ import org.apache.spark.sql.{Dataset, SparkSession}
 
 import scala.util._
 
-case class TrainingRecord(storeId: Int,
+case class TrainingRecord(storeId: Long,
                           url: String, title: String, breadCrumbs: String, brandText: String, categoryPath: String, price: Double, isbn: String, asin: String, specificationText: String, leafId: String,
                           topLevelId: String, isBroken: Boolean, discoveredDate: Option[Long], discontinuedDate: Option[Long])
 
@@ -71,7 +71,7 @@ trait DocGenerator {
       .setOutputCol("normalizedTokenVector")
 
     val pipeline = new Pipeline()
-      .setStages(Array(docTokenizer, docCV, normalizer))
+      .setStages(Array(docTokenizer, docCV, docIDF, normalizer))
 
     val ppModel = pipeline.fit(toplevelTrainingRecords)
     val transformedTopData = ppModel.transform(toplevelTrainingRecords)
@@ -150,11 +150,7 @@ case class NgramTokenizer(n: Int) extends DocGenerator {
   }
 }
 
-object BigramTokenizer {
-  def apply: NgramTokenizer = NgramTokenizer(2)
-}
+object BigramTokenizer extends NgramTokenizer(2)
 
-object TrigramTokenizer {
-  def apply: NgramTokenizer = NgramTokenizer(3)
-}
+object TrigramTokenizer extends NgramTokenizer(3)
 
