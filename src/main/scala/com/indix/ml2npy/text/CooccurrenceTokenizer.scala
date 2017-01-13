@@ -17,6 +17,6 @@ class CooccurrenceTokenizer extends RegexTokenizer {
       val (t1: String, t2: String) = if (i < j) (tokenI, tokenJ) else (tokenJ, tokenI)
       s"${t1}_$t2"
     }
-    filteredTokens   ++ coocc
+    coocc
   }
 }
