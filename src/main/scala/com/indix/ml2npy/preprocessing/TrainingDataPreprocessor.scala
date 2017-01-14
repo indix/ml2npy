@@ -39,5 +39,5 @@ trait DocGenerator {
 
   def sampleRecords(trainingRecords:Dataset[TrainingRecord]):Dataset[SimpleTrainingRecord]
 
-  def writeRecords(toplevelTrainingRecords: Dataset[SimpleTrainingRecord],outputPath:String)
+  def writeRecords(topLevelTrainingRecords: Dataset[SimpleTrainingRecord],outputPath:String)
 }
