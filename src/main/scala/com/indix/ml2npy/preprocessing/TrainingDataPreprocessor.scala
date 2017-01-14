@@ -28,10 +28,8 @@ trait DocGenerator {
     val spark = SparkSession.builder().appName("Ml2Npy").getOrCreate()
     val trainingRecords =readRecords(inputPath)
     val toplevelTrainingRecords=sampleRecords(trainingRecords)
-    writeRecords(toplevelTrainingRecords,outputPath)
+    writeRecords(toplevelTrainingRecords,outputPath,pipeline)
   }
-
-  def tokenizer: PipelineStage
 
   def pipeline: Pipeline
 
@@ -39,5 +37,5 @@ trait DocGenerator {
 
   def sampleRecords(trainingRecords:Dataset[TrainingRecord]):Dataset[SimpleTrainingRecord]
 
-  def writeRecords(topLevelTrainingRecords: Dataset[SimpleTrainingRecord],outputPath:String)
+  def writeRecords(topLevelTrainingRecords: Dataset[SimpleTrainingRecord],outputPath:String,pipeline:Pipeline)
 }
