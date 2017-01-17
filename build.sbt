@@ -1,3 +1,5 @@
+import sbt.Keys.libraryDependencies
+
 val libVersion = sys.env.getOrElse("SNAP_PIPELINE_COUNTER", "0.1.0-SNAPSHOT")
 
 lazy val commonSettings = Seq(
