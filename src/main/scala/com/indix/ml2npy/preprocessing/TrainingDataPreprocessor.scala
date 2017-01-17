@@ -3,10 +3,7 @@ package com.indix.ml2npy.preprocessing
 import org.apache.spark.ml.Pipeline
 import org.apache.spark.sql.{Dataset, SparkSession}
 
-import scala.util._
-
-
-trait DocGenerator[T,V] {
+trait DocGenerator[T] {
 
   def main(args: Array[String]): Unit = {
 
@@ -16,15 +13,12 @@ trait DocGenerator[T,V] {
 
     val spark = SparkSession.builder().appName("Ml2Npy").getOrCreate()
     val trainingRecords =readRecords(spark,inputPath)
-    val sampledRecords=sampleRecords(trainingRecords)
-    writeRecords(spark,sampledRecords,outputPath,pipeline,numParts)
+    writeRecords(spark,trainingRecords,outputPath,pipeline,numParts)
   }
 
   def pipeline: Pipeline
 
   def readRecords(spark: SparkSession, inputPath: String):Dataset[T]
 
-  def sampleRecords(trainingRecords:Dataset[T]):Dataset[V]
-
-  def writeRecords(spark: SparkSession, sampledRecords: Dataset[V], outputPath: String, pipeline: Pipeline, numParts: Int)
+  def writeRecords(spark: SparkSession, sampledRecords: Dataset[T], outputPath: String, pipeline: Pipeline, numParts: Int)
 }
