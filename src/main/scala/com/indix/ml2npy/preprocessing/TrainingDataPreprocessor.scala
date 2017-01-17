@@ -11,7 +11,13 @@ import org.apache.spark.sql._
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types.{ArrayType, StringType, StructField, StructType}
 
+trait Tokenization{
+  def tokenizer:PipelineStage
+}
+
 trait DocGenerator[T] {
+
+  def tokenizer:PipelineStage
 
   def main(args: Array[String]): Unit = {
 
@@ -22,8 +28,6 @@ trait DocGenerator[T] {
     val spark = SparkSession.builder().appName("Ml2Npy").getOrCreate()
     prepare(spark, inputPath, outputPath, numParts)
   }
-
-  def tokenizer: PipelineStage
 
   def pipeline(tokenizer:PipelineStage):Pipeline
 
@@ -38,7 +42,7 @@ trait DocGenerator[T] {
   }
 }
 
-trait UnigramTokens[T <: DocGenerator[T]] extends DocGenerator[T]{
+trait UnigramTokens extends Tokenization{
 
   override def tokenizer: PipelineStage = {
     val docTokenizer = new RegexTokenizer()
@@ -52,7 +56,7 @@ trait UnigramTokens[T <: DocGenerator[T]] extends DocGenerator[T]{
   }
 }
 
-trait CooccTokens[T <: DocGenerator[T]] extends DocGenerator[T] {
+trait CooccTokens extends Tokenization{
 
   override def tokenizer: PipelineStage = {
     val docTokenizer = new CooccurrenceTokenizer()
@@ -117,7 +121,7 @@ class TokenAssembler(override val uid: String) extends Transformer {
   }
 }
 
-trait NgramTokenizer[T <: DocGenerator[T]] extends DocGenerator[T]{
+trait NgramTokenizer extends Tokenization{
 
   val n:Int
 
