@@ -7,6 +7,7 @@ import org.apache.spark.ml.linalg.{DenseVector, Vector}
 import org.apache.spark.ml.{Pipeline, PipelineStage}
 import org.apache.spark.sql.{Dataset, SparkSession}
 
+import scala.collection.immutable.IndexedSeq
 import scala.util._
 
 case class TrainingRecord(storeId: Long,
@@ -139,13 +140,25 @@ case class NgramTokenizer(n: Int) extends DocGenerator {
       .setInputCol("doc")
       .setOutputCol("unigrams")
 
-    val nGrams = new NGram()
-      .setInputCol("unigrams")
+    val grams: Seq[PipelineStage] = {
+      for {
+        i <- 2 to n
+      } yield {
+        val gramTokenizer = new NGram()
+          .setInputCol("unigrams")
+          .setOutputCol(s"grams_$i")
+          .setN(i)
+        gramTokenizer
+      }
+    }
+
+    val gram_cols: Array[String] = (2 to n).map(x => s"grams_$x").toArray
+    val assembler = new VectorAssembler()
+      .setInputCols(Array("unigrams") ++ gram_cols)
       .setOutputCol("tokens")
-      .setN(2)
 
     val tokenPipeline = new Pipeline()
-    tokenPipeline.setStages(Array(docTokenizer, nGrams))
+    tokenPipeline.setStages(Array(docTokenizer, assembler))
     tokenPipeline
   }
 }
