@@ -33,9 +33,9 @@ trait DocGenerator {
 
   def pipeline: Pipeline
 
-  def readRecords(inputPath:String):Dataset[TrainingRecord]
+  def readRecords(inputPath:String):Dataset[T]
 
-  def sampleRecords(trainingRecords:Dataset[TrainingRecord]):Dataset[SimpleTrainingRecord]
+  def sampleRecords(trainingRecords:Dataset[T]):Dataset[T]
 
-  def writeRecords(topLevelTrainingRecords: Dataset[SimpleTrainingRecord],outputPath:String,pipeline:Pipeline)
+  def writeRecords(topLevelTrainingRecords: Dataset[T],outputPath:String,pipeline:Pipeline)
 }
