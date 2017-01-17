@@ -15,16 +15,16 @@ trait DocGenerator[T,V] {
     val numParts: Int = args(2).toInt
 
     val spark = SparkSession.builder().appName("Ml2Npy").getOrCreate()
-    val trainingRecords =readRecords(inputPath)
+    val trainingRecords =readRecords(spark,inputPath)
     val sampledRecords=sampleRecords(trainingRecords)
-    writeRecords(sampledRecords,outputPath,pipeline)
+    writeRecords(spark,sampledRecords,outputPath,pipeline,numParts)
   }
 
   def pipeline: Pipeline
 
-  def readRecords(inputPath:String):Dataset[T]
+  def readRecords(spark: SparkSession, inputPath: String):Dataset[T]
 
   def sampleRecords(trainingRecords:Dataset[T]):Dataset[V]
 
-  def writeRecords(sampledRecords: Dataset[V],outputPath:String,pipeline:Pipeline)
+  def writeRecords(spark: SparkSession, sampledRecords: Dataset[V], outputPath: String, pipeline: Pipeline, numParts: Int)
 }
