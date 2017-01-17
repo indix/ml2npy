@@ -2,12 +2,17 @@ package com.indix.ml2npy.preprocessing
 
 import com.indix.ml2npy.hadoop.NpyOutPutFormat
 import com.indix.ml2npy.text.CooccurrenceTokenizer
+import org.apache.spark.SparkException
+import org.apache.spark.annotation.DeveloperApi
 import org.apache.spark.ml.feature._
 import org.apache.spark.ml.linalg.{DenseVector, Vector}
-import org.apache.spark.ml.{Pipeline, PipelineStage}
-import org.apache.spark.sql.{Dataset, SparkSession}
+import org.apache.spark.ml.param.{Param, ParamMap, StringArrayParam}
+import org.apache.spark.ml.util.Identifiable
+import org.apache.spark.ml.{Pipeline, PipelineStage, Transformer}
+import org.apache.spark.sql._
+import org.apache.spark.sql.functions._
+import org.apache.spark.sql.types.{ArrayType, StringType, StructField, StructType}
 
-import scala.collection.immutable.IndexedSeq
 import scala.util._
 
 case class TrainingRecord(storeId: Long,
@@ -129,6 +134,58 @@ object CooccTokens extends DocGenerator {
   }
 }
 
+class TokenAssembler(override val uid: String) extends Transformer {
+  def this() = this(Identifiable.randomUID("tokenAssember"))
+
+  final val inputCols: StringArrayParam = new StringArrayParam(this, "inputCols", "input column names")
+
+  final def getInputCols: Array[String] = $(inputCols)
+
+  final val outputCol: Param[String] = new Param[String](this, "outputCol", "output column name")
+  setDefault(outputCol, uid + "__output")
+
+  final def getOutputCol: String = $(outputCol)
+
+  def setInputCols(value: Array[String]): this.type = set(inputCols, value)
+
+  def setOutputCol(value: String): this.type = set(outputCol, value)
+
+  def biGramCombiner = (x: Seq[String], y: Seq[String]) => {
+    x ++ y
+  }
+
+  def triGramCombiner = (x: Seq[String], y: Seq[String], z: Seq[String]) => {
+    x ++ y ++ z
+  }
+
+
+  override def transform(dataset: Dataset[_]): DataFrame = {
+    val outputColName = $(outputCol)
+    val combiner = $(inputCols).length match {
+      case 2 => biGramCombiner
+      case 3 => triGramCombiner
+      case _ => throw new SparkException("The input columns should be of size 2 or 3")
+    }
+    val tranformUDF = udf(combiner, ArrayType(StringType))
+    val newDs = $(inputCols).length match {
+      case 2 =>
+        dataset.withColumn(outputColName, tranformUDF(dataset("unigrams"), dataset("grams_2")))
+      case 3 =>
+        dataset.withColumn(outputColName, tranformUDF(dataset("unigrams"), dataset("grams_2"), dataset("grams_3")))
+    }
+    newDs
+  }
+
+  override def copy(extra: ParamMap): Transformer = defaultCopy(extra)
+
+  @DeveloperApi
+  override def transformSchema(schema: StructType): StructType = {
+    val outputColName = $(outputCol)
+    StructType(schema.fields :+ StructField(outputColName, ArrayType(StringType, containsNull = false), nullable = true))
+  }
+}
+
+
 case class NgramTokenizer(n: Int) extends DocGenerator {
 
   override def tokenizer: PipelineStage = {
@@ -153,7 +210,7 @@ case class NgramTokenizer(n: Int) extends DocGenerator {
     }
 
     val gram_cols: Array[String] = (2 to n).map(x => s"grams_$x").toArray
-    val assembler = new VectorAssembler()
+    val assembler = new TokenAssembler()
       .setInputCols(Array("unigrams") ++ gram_cols)
       .setOutputCol("tokens")
 
