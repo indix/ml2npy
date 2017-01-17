@@ -158,7 +158,7 @@ case class NgramTokenizer(n: Int) extends DocGenerator {
       .setOutputCol("tokens")
 
     val tokenPipeline = new Pipeline()
-    tokenPipeline.setStages(Array(docTokenizer, assembler))
+    tokenPipeline.setStages(Array(docTokenizer) ++ grams ++ Array(assembler))
     tokenPipeline
   }
 }
