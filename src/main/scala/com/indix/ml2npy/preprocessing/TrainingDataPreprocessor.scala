@@ -38,7 +38,7 @@ trait DocGenerator[T] {
   }
 }
 
-abstract class UnigramTokens[T <: DocGenerator[T]] extends DocGenerator[T]{
+trait UnigramTokens[T <: DocGenerator[T]] extends DocGenerator[T]{
 
   override def tokenizer: PipelineStage = {
     val docTokenizer = new RegexTokenizer()
@@ -52,7 +52,7 @@ abstract class UnigramTokens[T <: DocGenerator[T]] extends DocGenerator[T]{
   }
 }
 
-abstract class CooccTokens[T <: DocGenerator[T]] extends DocGenerator[T] {
+trait CooccTokens[T <: DocGenerator[T]] extends DocGenerator[T] {
 
   override def tokenizer: PipelineStage = {
     val docTokenizer = new CooccurrenceTokenizer()
@@ -117,7 +117,9 @@ class TokenAssembler(override val uid: String) extends Transformer {
   }
 }
 
-abstract class NgramTokenizer[T <: DocGenerator[T]] (n:Int) extends DocGenerator[T]{
+trait NgramTokenizer[T <: DocGenerator[T]] extends DocGenerator[T]{
+
+  val n:Int
 
   override def tokenizer: PipelineStage = {
     val docTokenizer = new RegexTokenizer()
