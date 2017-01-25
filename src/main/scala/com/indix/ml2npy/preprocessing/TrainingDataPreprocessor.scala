@@ -86,30 +86,13 @@ class TokenAssembler(override val uid: String) extends Transformer {
 
   def setOutputCol(value: String): this.type = set(outputCol, value)
 
-  def biGramCombiner = (x: Seq[String], y: Seq[String]) => {
-    x ++ y
-  }
-
-  def triGramCombiner = (x: Seq[String], y: Seq[String], z: Seq[String]) => {
-    x ++ y ++ z
-  }
-
-
   override def transform(dataset: Dataset[_]): DataFrame = {
+    val spark = SparkSession.builder().appName("Ml2Npy").getOrCreate()
+    import spark.implicits._
     val outputColName = $(outputCol)
-    val combiner = $(inputCols).length match {
-      case 2 => biGramCombiner
-      case 3 => triGramCombiner
-      case _ => throw new SparkException("The input columns should be of size 2 or 3")
-    }
-    val tranformUDF = udf(combiner, ArrayType(StringType))
-    val newDs = $(inputCols).length match {
-      case 2 =>
-        dataset.withColumn(outputColName, tranformUDF(dataset("unigrams"), dataset("grams_2")))
-      case 3 =>
-        dataset.withColumn(outputColName, tranformUDF(dataset("unigrams"), dataset("grams_2"), dataset("grams_3")))
-    }
-    newDs
+    val newDs = dataset.toDF().drop(outputColName).rdd.flatMap(x => x.toSeq.map(x => x.asInstanceOf[Seq[String]])).toDF()
+    val finalDs=newDs.toDF("input").join(dataset.toDF().select(outputColName).toDF(outputColName))
+    finalDs
   }
 
   override def copy(extra: ParamMap): Transformer = defaultCopy(extra)
@@ -123,9 +106,10 @@ class TokenAssembler(override val uid: String) extends Transformer {
 
 trait NgramTokenizer extends Tokenization{
 
-  val n:Int
+  val min:Int
+  val max:Int
 
-  override def tokenizer: PipelineStage = {
+  override def tokenizer: Pipeline = {
     val docTokenizer = new RegexTokenizer()
       .setGaps(false)
       .setMinTokenLength(3)
@@ -134,9 +118,17 @@ trait NgramTokenizer extends Tokenization{
       .setInputCol("doc")
       .setOutputCol("unigrams")
 
+    val tokenPipeline = max match  {
+      case 1 => new Pipeline().setStages(Array(docTokenizer))
+      case _ => getNgramPipeline(docTokenizer)
+    }
+    tokenPipeline
+  }
+
+  def getNgramPipeline(docTokenizer:RegexTokenizer) : Pipeline ={
     val grams: Seq[PipelineStage] = {
       for {
-        i <- 2 to n
+        i <- min to max
       } yield {
         val gramTokenizer = new NGram()
           .setInputCol("unigrams")
@@ -146,7 +138,7 @@ trait NgramTokenizer extends Tokenization{
       }
     }
 
-    val gram_cols: Array[String] = (2 to n).map(x => s"grams_$x").toArray
+    val gram_cols: Array[String] = (min to max).map(x => s"grams_$x").toArray
     val assembler = new TokenAssembler()
       .setInputCols(Array("unigrams") ++ gram_cols)
       .setOutputCol("tokens")
