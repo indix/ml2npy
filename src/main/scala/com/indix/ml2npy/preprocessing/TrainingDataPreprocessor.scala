@@ -1,11 +1,10 @@
 package com.indix.ml2npy.preprocessing
 
-import com.indix.ml2npy.hadoop.NpyOutPutFormat
 import com.indix.ml2npy.text.CooccurrenceTokenizer
 import org.apache.spark.SparkException
+import org.apache.spark.sql.functions.{udf, array}
 import org.apache.spark.annotation.DeveloperApi
 import org.apache.spark.ml.feature._
-import org.apache.spark.ml.linalg.{DenseVector, Vector}
 import org.apache.spark.ml.param.{Param, ParamMap, StringArrayParam}
 import org.apache.spark.ml.util.Identifiable
 import org.apache.spark.ml.{Pipeline, PipelineStage, Transformer}
@@ -13,17 +12,13 @@ import org.apache.spark.sql._
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types.{ArrayType, StringType, StructField, StructType}
 
-import scala.util._
+trait Tokenization{
+  def tokenizer:PipelineStage
+}
 
-case class TrainingRecord(storeId: Long,
-                          url: String, title: String, breadCrumbs: String, brandText: String, categoryPath: String, price: Double, isbn: String, asin: String, specificationText: String, leafId: String,
-                          topLevelId: String, isBroken: Boolean, discoveredDate: Option[Long], discontinuedDate: Option[Long])
+trait DocGenerator[T] {
 
-case class SimpleTrainingRecord(url: String, doc: String, topLevelId: Short, categoryId: Short)
-
-case class TFIdfModel(vocab: Array[String], idf: Option[Vector])
-
-trait DocGenerator {
+  def tokenizer:PipelineStage
 
   def main(args: Array[String]): Unit = {
 
@@ -35,78 +30,20 @@ trait DocGenerator {
     prepare(spark, inputPath, outputPath, numParts)
   }
 
-  def tokenizer: PipelineStage
+  def pipeline(tokenizer:PipelineStage):Pipeline
+
+  def readRecords(spark: SparkSession, inputPath: String):Dataset[T]
+
+  def writeRecords(spark: SparkSession, sampledRecords: Dataset[T], outputPath: String, pipeline: Pipeline, numParts: Int)
 
   def prepare(spark: SparkSession, inputPath: String, outputPath: String, numParts: Int): Unit = {
-    import spark.implicits._
-    val trainingRecords: Dataset[TrainingRecord] = spark.read.json(inputPath).as[TrainingRecord].cache()
-    val toplevelTrainingRecords = trainingRecords.mapPartitions(iterator => {
-      val bcSelector = new Random(11)
-      val brandSelector = new Random(17)
-      for {
-        record <- iterator
-      } yield {
-        val isBc = bcSelector.nextInt(2) == 0
-        val isBrand = brandSelector.nextInt(2) == 0
-        val isSpecs = bcSelector.nextInt(2) == 0
-        val doc = {
-          record.title + {
-            if (isBrand) " " + record.brandText else " "
-          } + {
-            if (isBc) " " + record.breadCrumbs else " "
-          }
-        }
-        SimpleTrainingRecord(record.url, doc, Integer.parseInt(record.topLevelId).toShort, Integer.parseInt(record.leafId).toShort)
-      }
-    })
-
-    val docTokenizer = tokenizer
-
-    val docCV = new CountVectorizer()
-      .setMinDF(100)
-      .setInputCol("tokens")
-      .setOutputCol("tokenCounts")
-      .setBinary(true)
-
-    val docIDF = new IDF()
-      .setInputCol("tokenCounts")
-      .setOutputCol("tokenIDF")
-
-    val normalizer = new Normalizer()
-      .setInputCol("tokenIDF")
-      .setOutputCol("normalizedTokenVector")
-
-    val pipeline = new Pipeline()
-      .setStages(Array(docTokenizer, docCV, docIDF, normalizer))
-
-    val ppModel = pipeline.fit(toplevelTrainingRecords)
-    val transformedTopData = ppModel.transform(toplevelTrainingRecords)
-
-    transformedTopData.select("doc", "tokens", "normalizedTokenVector").show()
-
-    val idfData = transformedTopData.select("normalizedTokenVector", "topLevelId", "categoryId")
-      .map(x => (x.getAs[Vector](0), new DenseVector(Array(x.getShort(1), x.getShort(2)))))
-      .repartition(numParts)
-      .rdd
-      .saveAsHadoopFile(outputPath, classOf[Vector], classOf[Vector], classOf[NpyOutPutFormat])
-
-    val cvModel = ppModel.stages(1) match {
-      case x: CountVectorizerModel => x
-    }
-    val idfModel = ppModel.stages(2) match {
-      case x: IDFModel => x
-    }
-    val tfidf: TFIdfModel = TFIdfModel(cvModel.vocabulary, Some(idfModel.idf))
-    val data: Seq[TFIdfModel] = Seq(tfidf)
-    val tfidfDF = spark.createDataFrame[TFIdfModel](data).coalesce(1).toDF()
-    tfidfDF.write.json(s"$outputPath/tfidfModel")
+    val records = readRecords(spark,inputPath)
+    val pp = pipeline(tokenizer)
+    writeRecords(spark,records,outputPath,pp,numParts)
   }
 }
 
-/**
-  * Created by vumaasha on 28/12/16.
-  */
-object UnigramTokens extends DocGenerator {
+trait UnigramTokens extends Tokenization{
 
   override def tokenizer: PipelineStage = {
     val docTokenizer = new RegexTokenizer()
@@ -120,7 +57,7 @@ object UnigramTokens extends DocGenerator {
   }
 }
 
-object CooccTokens extends DocGenerator {
+trait CooccTokens extends Tokenization{
 
   override def tokenizer: PipelineStage = {
     val docTokenizer = new CooccurrenceTokenizer()
@@ -150,29 +87,13 @@ class TokenAssembler(override val uid: String) extends Transformer {
 
   def setOutputCol(value: String): this.type = set(outputCol, value)
 
-  def biGramCombiner = (x: Seq[String], y: Seq[String]) => {
-    x ++ y
-  }
-
-  def triGramCombiner = (x: Seq[String], y: Seq[String], z: Seq[String]) => {
-    x ++ y ++ z
-  }
-
-
   override def transform(dataset: Dataset[_]): DataFrame = {
     val outputColName = $(outputCol)
-    val combiner = $(inputCols).length match {
-      case 2 => biGramCombiner
-      case 3 => triGramCombiner
-      case _ => throw new SparkException("The input columns should be of size 2 or 3")
-    }
-    val tranformUDF = udf(combiner, ArrayType(StringType))
-    val newDs = $(inputCols).length match {
-      case 2 =>
-        dataset.withColumn(outputColName, tranformUDF(dataset("unigrams"), dataset("grams_2")))
-      case 3 =>
-        dataset.withColumn(outputColName, tranformUDF(dataset("unigrams"), dataset("grams_2"), dataset("grams_3")))
-    }
+    val myConcatFunc = (xs: Seq[Any]) => xs.flatMap(x=> x.asInstanceOf[Seq[String]])
+    val myConcat = udf(myConcatFunc)
+    val myCol = dataset.schema.fieldNames.filter(x=>x.contains("gram") && x !="unigrams").map(x=>col(x))
+    val cols = array(myCol:_*)
+    val newDs = dataset.withColumn(outputColName, myConcat(cols))
     newDs
   }
 
@@ -185,10 +106,12 @@ class TokenAssembler(override val uid: String) extends Transformer {
   }
 }
 
+trait NgramTokenizer extends Tokenization{
 
-case class NgramTokenizer(n: Int) extends DocGenerator {
+  val min:Int
+  val max:Int
 
-  override def tokenizer: PipelineStage = {
+  override def tokenizer: Pipeline = {
     val docTokenizer = new RegexTokenizer()
       .setGaps(false)
       .setMinTokenLength(3)
@@ -197,9 +120,17 @@ case class NgramTokenizer(n: Int) extends DocGenerator {
       .setInputCol("doc")
       .setOutputCol("unigrams")
 
+    val tokenPipeline = max match  {
+      case 1 => new Pipeline().setStages(Array(docTokenizer))
+      case _ => getNgramPipeline(docTokenizer)
+    }
+    tokenPipeline
+  }
+
+  def getNgramPipeline(docTokenizer:RegexTokenizer) : Pipeline ={
     val grams: Seq[PipelineStage] = {
       for {
-        i <- 2 to n
+        i <- min to max
       } yield {
         val gramTokenizer = new NGram()
           .setInputCol("unigrams")
@@ -209,7 +140,7 @@ case class NgramTokenizer(n: Int) extends DocGenerator {
       }
     }
 
-    val gram_cols: Array[String] = (2 to n).map(x => s"grams_$x").toArray
+    val gram_cols: Array[String] = (min to max).map(x => s"grams_$x").toArray
     val assembler = new TokenAssembler()
       .setInputCols(Array("unigrams") ++ gram_cols)
       .setOutputCol("tokens")
@@ -219,8 +150,4 @@ case class NgramTokenizer(n: Int) extends DocGenerator {
     tokenPipeline
   }
 }
-
-object BigramTokenizer extends NgramTokenizer(2)
-
-object TrigramTokenizer extends NgramTokenizer(3)
 
