@@ -2,6 +2,7 @@ package com.indix.ml2npy.preprocessing
 
 import com.indix.ml2npy.text.CooccurrenceTokenizer
 import org.apache.spark.SparkException
+import org.apache.spark.sql.functions.{udf, array}
 import org.apache.spark.annotation.DeveloperApi
 import org.apache.spark.ml.feature._
 import org.apache.spark.ml.param.{Param, ParamMap, StringArrayParam}
@@ -87,12 +88,13 @@ class TokenAssembler(override val uid: String) extends Transformer {
   def setOutputCol(value: String): this.type = set(outputCol, value)
 
   override def transform(dataset: Dataset[_]): DataFrame = {
-    val spark = SparkSession.builder().appName("Ml2Npy").getOrCreate()
-    import spark.implicits._
     val outputColName = $(outputCol)
-    val newDs = dataset.toDF().drop(outputColName).rdd.flatMap(x => x.toSeq.map(x => x.asInstanceOf[Seq[String]])).toDF()
-    val finalDs=newDs.toDF("input").join(dataset.toDF().select(outputColName).toDF(outputColName))
-    finalDs
+    val myConcatFunc = (xs: Seq[Any]) => xs.flatMap(x=> x.asInstanceOf[Seq[String]])
+    val myConcat = udf(myConcatFunc)
+    val myCol = dataset.schema.fieldNames.filter(x=>x.contains("gram") && x !="grams_1").map(x=>col(x))
+    val cols = array(myCol:_*)
+    val newDs = dataset.withColumn(outputColName, myConcat(cols))
+    newDs
   }
 
   override def copy(extra: ParamMap): Transformer = defaultCopy(extra)
