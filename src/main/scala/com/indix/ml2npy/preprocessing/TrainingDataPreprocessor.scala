@@ -91,7 +91,7 @@ class TokenAssembler(override val uid: String) extends Transformer {
     val outputColName = $(outputCol)
     val myConcatFunc = (xs: Seq[Any]) => xs.flatMap(x=> x.asInstanceOf[Seq[String]])
     val myConcat = udf(myConcatFunc)
-    val myCol = dataset.schema.fieldNames.filter(x=>x.contains("gram") && x !="grams_1").map(x=>col(x))
+    val myCol = dataset.schema.fieldNames.filter(x=>x.contains("gram") && x !="unigrams").map(x=>col(x))
     val cols = array(myCol:_*)
     val newDs = dataset.withColumn(outputColName, myConcat(cols))
     newDs
