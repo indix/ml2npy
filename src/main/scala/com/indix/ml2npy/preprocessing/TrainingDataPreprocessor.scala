@@ -1,8 +1,9 @@
 package com.indix.ml2npy.preprocessing
 
 import com.indix.ml2npy.text.CooccurrenceTokenizer
+import org.apache.log4j.LogManager
 import org.apache.spark.SparkException
-import org.apache.spark.sql.functions.{udf, array}
+import org.apache.spark.sql.functions.{array, udf}
 import org.apache.spark.annotation.DeveloperApi
 import org.apache.spark.ml.feature._
 import org.apache.spark.ml.param.{Param, ParamMap, StringArrayParam}
@@ -12,13 +13,15 @@ import org.apache.spark.sql._
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types.{ArrayType, StringType, StructField, StructType}
 
-trait Tokenization{
-  def tokenizer:PipelineStage
+trait Tokenization {
+  def tokenizer: PipelineStage
 }
 
-trait DocGenerator[T] {
+trait DocGenerator[T] extends Serializable {
 
-  def tokenizer:PipelineStage
+  @transient lazy val logger = LogManager.getLogger(this.getClass)
+
+  def tokenizer: PipelineStage
 
   def main(args: Array[String]): Unit = {
 
@@ -30,20 +33,20 @@ trait DocGenerator[T] {
     prepare(spark, inputPath, outputPath, numParts)
   }
 
-  def pipeline(tokenizer:PipelineStage):Pipeline
+  def pipeline(tokenizer: PipelineStage): Pipeline
 
-  def readRecords(spark: SparkSession, inputPath: String):Dataset[T]
+  def readRecords(spark: SparkSession, inputPath: String): Dataset[T]
 
   def writeRecords(spark: SparkSession, sampledRecords: Dataset[T], outputPath: String, pipeline: Pipeline, numParts: Int)
 
   def prepare(spark: SparkSession, inputPath: String, outputPath: String, numParts: Int): Unit = {
-    val records = readRecords(spark,inputPath)
+    val records = readRecords(spark, inputPath)
     val pp = pipeline(tokenizer)
-    writeRecords(spark,records,outputPath,pp,numParts)
+    writeRecords(spark, records, outputPath, pp, numParts)
   }
 }
 
-trait UnigramTokens extends Tokenization{
+trait UnigramTokens extends Tokenization {
 
   override def tokenizer: PipelineStage = {
     val docTokenizer = new RegexTokenizer()
@@ -57,7 +60,7 @@ trait UnigramTokens extends Tokenization{
   }
 }
 
-trait CooccTokens extends Tokenization{
+trait CooccTokens extends Tokenization {
 
   override def tokenizer: PipelineStage = {
     val docTokenizer = new CooccurrenceTokenizer()
@@ -89,10 +92,10 @@ class TokenAssembler(override val uid: String) extends Transformer {
 
   override def transform(dataset: Dataset[_]): DataFrame = {
     val outputColName = $(outputCol)
-    val myConcatFunc = (xs: Seq[Any]) => xs.flatMap(x=> x.asInstanceOf[Seq[String]])
+    val myConcatFunc = (xs: Seq[Any]) => xs.flatMap(x => x.asInstanceOf[Seq[String]])
     val myConcat = udf(myConcatFunc)
-    val myCol = dataset.schema.fieldNames.filter(x=>x.contains("gram") && x !="unigrams").map(x=>col(x))
-    val cols = array(myCol:_*)
+    val myCol = dataset.schema.fieldNames.filter(x => x.contains("gram") && x != "unigrams").map(x => col(x))
+    val cols = array(myCol: _*)
     val newDs = dataset.withColumn(outputColName, myConcat(cols))
     newDs
   }
@@ -106,10 +109,10 @@ class TokenAssembler(override val uid: String) extends Transformer {
   }
 }
 
-trait NgramTokenizer extends Tokenization{
+trait NgramTokenizer extends Tokenization {
 
-  val min:Int
-  val max:Int
+  val min: Int
+  val max: Int
 
   override def tokenizer: Pipeline = {
     val docTokenizer = new RegexTokenizer()
@@ -120,14 +123,14 @@ trait NgramTokenizer extends Tokenization{
       .setInputCol("doc")
       .setOutputCol("unigrams")
 
-    val tokenPipeline = max match  {
+    val tokenPipeline = max match {
       case 1 => new Pipeline().setStages(Array(docTokenizer))
       case _ => getNgramPipeline(docTokenizer)
     }
     tokenPipeline
   }
 
-  def getNgramPipeline(docTokenizer:RegexTokenizer) : Pipeline ={
+  def getNgramPipeline(docTokenizer: RegexTokenizer): Pipeline = {
     val grams: Seq[PipelineStage] = {
       for {
         i <- min to max
