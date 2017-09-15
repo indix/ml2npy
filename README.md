@@ -1,7 +1,5 @@
 # ml2npy - Export spark ml SparseVectors as numpy csr matrix
 
-[![Build Status](https://app.snap-ci.com/indix/ml2npy/branch/master/build_image)](https://app.snap-ci.com/indix/ml2npy/branch/master)
-
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.indix/ml2npy_2.11/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.indix/ml2npy_2.11)
 
 The aim of this project is to provide that tools that efficiently implement the components that are required for large scale text mining. 
@@ -17,7 +15,3 @@ Numerical representation of text tends to be very sparse. By choosing [sparse ma
 ### Why Npy format?
 
 Python and scikit-learn ecosystem has made machine learning a lot more accessible. By being able to load data in to python, means a lot of algorithms could be easily applied.
-
-
-
-
